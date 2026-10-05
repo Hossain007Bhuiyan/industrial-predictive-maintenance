@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+dist/
+
+# macOS
+.DS_Store
+
+# Data is downloaded by scripts, never committed
+data/
