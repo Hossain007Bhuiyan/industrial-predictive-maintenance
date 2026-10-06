@@ -123,3 +123,10 @@ def test_read_sca_case9_mixed_rates(sca, rate, length):
     signal = datasets.read_sca(9, "test", row["placement"], int(row["measurement"]))
     assert len(signal) == length
     assert np.isfinite(signal).all()
+
+
+@needs_sca
+def test_sca_fault_orders_have_four_frequencies():
+    orders = datasets.sca_fault_orders(1, "test", "DS")
+    assert set(orders) == {"FTF", "BPF", "BPFO", "BPFI"}
+    assert all(value > 0 for value in orders.values())

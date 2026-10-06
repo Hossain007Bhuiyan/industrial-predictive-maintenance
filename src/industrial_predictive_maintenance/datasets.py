@@ -181,6 +181,16 @@ def read_sca(case: int, part: str, placement: str, measurement: int) -> np.ndarr
     return np.asarray(row, dtype=np.float32).ravel()
 
 
+def sca_fault_orders(case: int, part: str, placement: str) -> dict[str, float]:
+    """Fault frequencies as multiples of the shaft speed in Hz (FTF, BPF, BPFO and BPFI)."""
+    s = _load_sca_file(case, part)[placement][0, 0]
+    frequencies = s["faultFrequencies"][0, 0]
+    return {
+        name.removesuffix("Multiple"): float(np.ravel(frequencies[name])[0])
+        for name in frequencies.dtype.names
+    }
+
+
 # Check
 
 
