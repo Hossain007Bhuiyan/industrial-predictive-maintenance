@@ -34,21 +34,46 @@ SCA_TOP_LEVEL = {"id", "assetDescription", "faultOrigin", "faultType", "fromDate
 
 # FEMTO
 
+# Recordings are 10 s apart. A larger jump between two files means a broken clock value.
+FEMTO_MAX_STEP_S = 600
+
 
 def _femto_separator(path: Path) -> str:
     with path.open() as f:
         return ";" if ";" in f.readline() else ","
 
 
-def _femto_elapsed_seconds(files: list[Path]) -> np.ndarray:
-    clock = []
-    for path in files:
-        with path.open() as f:
-            h, m, s, us = (float(v) for v in f.readline().replace(";", ",").split(",")[:4])
-        clock.append(h * 3600 + m * 60 + s + us / 1e6)
-    steps = np.diff(clock, prepend=clock[0])
-    steps[steps < 0] += 86_400  # the recording passed midnight
-    return np.cumsum(steps)
+def _femto_clock(path: Path) -> float:
+    """Time of day of a recording in seconds, read from its first row."""
+    with path.open() as f:
+        h, m, s, us = (float(v) for v in f.readline().replace(";", ",").split(",")[:4])
+    return h * 3600 + m * 60 + s + us / 1e6
+
+
+def _femto_elapsed_seconds(files: list[Path]) -> tuple[np.ndarray, np.ndarray]:
+    """Seconds since the first recording plus a flag that tells whether each value comes from the file's clock.
+
+    In Bearing1_1 the files acc_02121 and acc_02122 carry a clock value about
+    six hours earlier than their neighbours, while the files around them are
+    exactly 30 s apart. Clock values that do not move forward by a plausible
+    step are replaced by linear interpolation between the valid neighbours.
+    """
+    clock = np.array([_femto_clock(path) for path in files])
+    elapsed = np.zeros(len(clock))
+    valid = np.zeros(len(clock), dtype=bool)
+    valid[0] = True
+    last = 0
+    for i in range(1, len(clock)):
+        step = clock[i] - clock[last]
+        if step < -43_200:
+            step += 86_400  # the recording passed midnight
+        if 0 < step <= FEMTO_MAX_STEP_S:
+            elapsed[i] = elapsed[last] + step
+            valid[i] = True
+            last = i
+    index = np.arange(len(clock))
+    elapsed[~valid] = np.interp(index[~valid], index[valid], elapsed[valid])
+    return elapsed, valid
 
 
 def femto_catalog() -> pd.DataFrame:
@@ -59,7 +84,8 @@ def femto_catalog() -> pd.DataFrame:
             condition = int(bearing[7])
             rpm, load_n = FEMTO_CONDITIONS[condition]
             files = sorted(bearing_dir.glob("acc_*.csv"))
-            for number, (path, seconds) in enumerate(zip(files, _femto_elapsed_seconds(files)), start=1):
+            elapsed, clock_ok = _femto_elapsed_seconds(files)
+            for number, path in enumerate(files, start=1):
                 rows.append(
                     {
                         "bearing": bearing,
@@ -68,7 +94,8 @@ def femto_catalog() -> pd.DataFrame:
                         "rpm": rpm,
                         "load_n": load_n,
                         "recording": number,
-                        "seconds": float(seconds),
+                        "seconds": float(elapsed[number - 1]),
+                        "clock_ok": bool(clock_ok[number - 1]),
                         "path": str(path),
                     }
                 )
