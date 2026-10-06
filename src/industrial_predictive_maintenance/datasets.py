@@ -1,4 +1,5 @@
 """Load the raw FEMTO, IMS and SCA bearing data.
+
 Each dataset has a catalog function that lists every recording with its
 metadata and a read function that returns the vibration signal of one
 recording. Signals are only read when needed, since all datasets at once
@@ -35,7 +36,6 @@ IMS_STOPPED_RECORDINGS = {
     2: ("2004.02.19.06.12.39", "2004.02.19.06.22.39"),
     3: ("2004.04.18.02.42.55",),
 }
-
 
 SCA_TOP_LEVEL = {"id", "assetDescription", "faultOrigin", "faultType", "fromDate", "toDate", "fixedSpeed"}
 
@@ -118,6 +118,7 @@ def read_femto(path: Path | str) -> np.ndarray:
 
 
 # IMS
+
 
 def ims_catalog(documented_only: bool = False) -> pd.DataFrame:
     rows = []
@@ -237,7 +238,7 @@ def main() -> None:
     ims = ims_catalog()
     sca = sca_catalog()
     print(f"FEMTO  {femto['bearing'].nunique()} bearings, {len(femto)} recordings")
-    print(f"IMS    recordings per test (documented part): {ims.groupby('test').size().to_dict()}")
+    print(f"IMS    recordings per test: {ims.groupby('test').size().to_dict()}")
     print(f"SCA    {sca['case'].nunique()} cases, {len(sca)} measurements")
 
     print("\nFEMTO peak vibration per recording over the whole life (g)")

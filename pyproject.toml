@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "numpy>=2.5.3",
+    "paho-mqtt>=2.1.0",
     "pandas>=3.0.6",
     "pyarrow>=25.0.1",
     "scipy>=1.18.1",
