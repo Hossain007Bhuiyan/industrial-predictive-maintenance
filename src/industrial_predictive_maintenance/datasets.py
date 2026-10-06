@@ -25,9 +25,17 @@ FEMTO_SAMPLING_HZ = 25_600
 
 IMS_TESTS = {1: ("1st_test", 8), 2: ("2nd_test", 4), 3: ("4th_test/txt", 4)}
 IMS_SAMPLING_HZ = 20_000
-# The official documentation ends test 3 here. The archive holds 1,876 more
-# recordings after this point that the documentation does not describe.
+# The official documentation ends test 3 here. The archive continues until
+# 18 April 2004 and bearing 3 only degrades after this point (highest RMS
+# 0.074 before against 0.759 after), so the full archive is used by default.
 IMS_TEST3_DOCUMENTED_END = pd.Timestamp("2004-04-04 19:01:57")
+# Recordings that hold no bearing vibration, most likely taken after the rig
+# stopped. Every channel has an RMS below 0.005 against 0.1 to 0.8 just before.
+IMS_STOPPED_RECORDINGS = {
+    2: ("2004.02.19.06.12.39", "2004.02.19.06.22.39"),
+    3: ("2004.04.18.02.42.55",),
+}
+
 
 SCA_TOP_LEVEL = {"id", "assetDescription", "faultOrigin", "faultType", "fromDate", "toDate", "fixedSpeed"}
 
@@ -111,15 +119,26 @@ def read_femto(path: Path | str) -> np.ndarray:
 
 # IMS
 
-
-def ims_catalog(documented_only: bool = True) -> pd.DataFrame:
+def ims_catalog(documented_only: bool = False) -> pd.DataFrame:
     rows = []
     for test, (folder, channels) in IMS_TESTS.items():
+        stopped = IMS_STOPPED_RECORDINGS.get(test, ())
         for path in sorted((IMS_DIR / folder).glob("20*")):
-            time = pd.to_datetime(path.name, format="%Y.%m.%d.%H.%M.%S")
-            if documented_only and test == 3 and time > IMS_TEST3_DOCUMENTED_END:
+            if path.name in stopped:
                 continue
-            rows.append({"test": test, "time": time, "channels": channels, "path": str(path)})
+            time = pd.to_datetime(path.name, format="%Y.%m.%d.%H.%M.%S")
+            after_end = test == 3 and time > IMS_TEST3_DOCUMENTED_END
+            if documented_only and after_end:
+                continue
+            rows.append(
+                {
+                    "test": test,
+                    "time": time,
+                    "channels": channels,
+                    "after_documented_end": after_end,
+                    "path": str(path),
+                }
+            )
     return pd.DataFrame(rows)
 
 

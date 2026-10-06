@@ -77,17 +77,27 @@ def test_femto_broken_clock_values_are_only_in_bearing1_1(femto):
 
 # IMS
 
+@needs_ims
+def test_ims_recordings(ims):
+    assert ims.groupby("test").size().to_dict() == {1: 2156, 2: 982, 3: 6323}
+    assert ims["after_documented_end"].sum() == 6323 - 4448
+
 
 @needs_ims
-def test_ims_documented_recordings(ims):
-    assert ims.groupby("test").size().to_dict() == {1: 2156, 2: 984, 3: 4448}
-    assert ims.loc[ims["test"] == 3, "time"].max() == datasets.IMS_TEST3_DOCUMENTED_END
+def test_ims_documented_part_of_test3():
+    documented = datasets.ims_catalog(documented_only=True)
+    assert documented.groupby("test").size().to_dict() == {1: 2156, 2: 982, 3: 4448}
+    assert documented.loc[documented["test"] == 3, "time"].max() == datasets.IMS_TEST3_DOCUMENTED_END
 
 
 @needs_ims
-def test_ims_full_archive_keeps_extra_test3_recordings():
-    full = datasets.ims_catalog(documented_only=False)
-    assert (full["test"] == 3).sum() == 6324
+def test_ims_stopped_recordings_hold_no_vibration(ims):
+    for test, names in datasets.IMS_STOPPED_RECORDINGS.items():
+        folder = datasets.IMS_DIR / datasets.IMS_TESTS[test][0]
+        for name in names:
+            signal = datasets.read_ims(folder / name)
+            assert np.sqrt(np.mean(signal**2, axis=0)).max() < 0.005, name
+            assert str(folder / name) not in set(ims["path"])
 
 
 @needs_ims
