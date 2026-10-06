@@ -7,7 +7,11 @@ authors = [
     { name = "Md Motaher Hossain Bhuiyan", email = "hossain.se@outlook.com" }
 ]
 requires-python = ">=3.12,<3.13"
-dependencies = []
+dependencies = [
+    "numpy>=2.5.3",
+    "pandas>=3.0.6",
+    "scipy>=1.18.1",
+]
 
 [project.scripts]
 industrial-predictive-maintenance = "industrial_predictive_maintenance:main"
