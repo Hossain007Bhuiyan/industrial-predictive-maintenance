@@ -68,6 +68,7 @@ The drift injector changes replayed real recordings on purpose to test drift det
 - Python 3.12 (uv installs it automatically)
 - unar, to unpack the IMS archives (macOS: `brew install unar`, Ubuntu: `sudo apt install unar`)
 - Docker with Docker Compose, for the MQTT broker
+- About 14 GB of free disk space for the downloaded and unpacked data
 
 ## Setup
 
