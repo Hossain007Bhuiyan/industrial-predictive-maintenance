@@ -12,6 +12,7 @@ dependencies = [
     "paho-mqtt>=2.1.0",
     "pandas>=3.0.6",
     "pyarrow>=25.0.1",
+    "pydantic>=2.14.0",
     "scipy>=1.18.1",
 ]
 

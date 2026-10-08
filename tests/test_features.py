@@ -51,12 +51,14 @@ def test_extract_rejects_a_wrong_channel_count(recording):
 
 
 @needs_sca
-def test_inner_ring_fault_shows_at_bpfi_in_sca_case1():
+@pytest.mark.parametrize("case, fault", [(1, "BPFI"), (8, "BPFO")])
+def test_known_fault_shows_at_its_frequency(case, fault):
+    # Case 1 has an inner ring fault and case 8 an outer ring fault.
     sca = datasets.sca_catalog()
-    rows = sca[(sca["case"] == 1) & (sca["placement"] == "DS") & (sca["rpm"] > 0)]
-    orders = datasets.sca_fault_orders(1, "test", "DS")
+    rows = sca[(sca["case"] == case) & (sca["placement"] == "DS") & (sca["rpm"] > 0)]
+    orders = datasets.sca_fault_orders(case, "test", "DS")
     ratio = {}
     for name, row in (("normal", rows[rows["part"] == "train"].iloc[0]), ("faulty", rows[rows["part"] == "test"].iloc[-1])):
-        x = datasets.read_sca(1, row["part"], "DS", int(row["measurement"]))
-        ratio[name] = features.fault_features(x, row["sampling_hz"], row["rpm"], orders)["fault_BPFI"]
+        x = datasets.read_sca(case, row["part"], "DS", int(row["measurement"]))
+        ratio[name] = features.fault_features(x, row["sampling_hz"], row["rpm"], orders)[f"fault_{fault}"]
     assert ratio["faulty"] > 2 * ratio["normal"]
