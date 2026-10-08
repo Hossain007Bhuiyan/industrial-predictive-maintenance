@@ -11,6 +11,7 @@ dependencies = [
     "numpy>=2.5.3",
     "paho-mqtt>=2.1.0",
     "pandas>=3.0.6",
+    "pandera>=0.34.1",
     "pyarrow>=25.0.1",
     "pydantic>=2.14.0",
     "scipy>=1.18.1",
