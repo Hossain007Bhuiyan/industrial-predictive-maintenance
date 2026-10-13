@@ -24,6 +24,10 @@ Done:
 - Data overview and exploration notebooks
 - MQTT broker (Mosquitto in Docker) and a replay service that streams real recordings as if the sensors were live
 - Drift injector for testing drift detection later
+- Feature extraction: time domain, frequency bands and envelope spectrum amplitudes at the bearing fault frequencies
+- Ingestion service that validates every MQTT message against a schema, computes its features and rejects broken messages with a reason
+- Feature tables for all three datasets, checked with a Pandera schema, using the same feature code as the live stream
+- Features notebook
 
 The other parts are not built yet. This README is updated as each part is finished.
 
@@ -39,17 +43,20 @@ No raw data is stored in this repository. The download script fetches FEMTO and 
 
 ### Known data issues
 
-Found during the data audit and handled in the code:
+Found while auditing and exploring the data:
 
 - **FEMTO and IMS are laboratory tests with accelerated wear**, not measurements from a factory.
 - **FEMTO end of life:** the literature describes a 20 g stop criterion. Four bearings never reach 20 g and others pass it long before the end. End of life is therefore taken as the last recording of each bearing.
-- **FEMTO sensor limit:** Bearing1_1, 1_3, 1_4 and 2_3 reach exactly 48.15 g, so their highest peaks are cut off by the sensor range.
+- **FEMTO sensor limit:** the horizontal channel never goes above 48.148 g. Bearing1_1, 1_3, 1_4 and 2_3 have 32 recordings at that ceiling, so their highest peaks are cut off. The rig's Dytran 3035B accelerometers exist in ±50, ±100 and ±500 g versions. The version used is not documented, so the limit is taken from the data.
 - **FEMTO clock values:** two files in Bearing1_1 (acc_02121 and acc_02122) carry a wrong time stamp. Their times are interpolated and marked in the data.
 - **FEMTO format:** Bearing1_4 uses semicolons instead of commas. Bearing1_3, 2_2, 2_3 and 3_2 have no temperature files.
+- **FEMTO low recordings:** Bearing2_1 recording 13 and Bearing3_2 recording 1562 have about ten times less vibration than the recordings around them. They are kept in the raw data and are to be left out when training models.
+- **FEMTO wear pattern:** in most bearings the vibration level stays flat for most of the life and only rises near the end. No single feature follows the wear in all 17 bearings.
 - **IMS test 3:** the archive holds 1,875 recordings after the documented end on 4 April 2004. Bearing 3 only degrades in that part. The full archive is used.
 - **IMS stopped recordings:** two recordings at the end of test 2 and one at the end of test 3 contain no vibration and are left out.
 - **IMS unit:** the vibration unit is not documented.
-- **SCA labels** were set by hand from envelope spectra, so fault start and end dates can be slightly off. Case 11 contains an external event that is labelled normal and is only used to test false alarms. Case 9 mixes two sampling rates.
+- **SCA labels** were set by hand from envelope spectra, so fault start and end dates can be slightly off. In case 10 the outer ring fault label starts about six weeks before the fault is visible at its fault frequency. Case 11 contains an external event that is labelled normal and is only used to test false alarms. Case 9 mixes two sampling rates.
+- **SCA case 9 normal data:** in the normal period after the bearing change, the outer ring fault feature rises again from May 2021. That period must not be used as clean normal data when training models.
 
 ### Synthetic changes
 
@@ -84,6 +91,12 @@ Download the SCA dataset by hand from Mendeley Data with "Download All" and save
 uv run python -m industrial_predictive_maintenance.data_download
 ```
 
+Build the feature tables (about three minutes):
+
+```bash
+uv run python -m industrial_predictive_maintenance.build_features
+```
+
 Run the tests:
 
 ```bash
@@ -99,4 +112,10 @@ docker compose up -d mqtt
 uv run python -m industrial_predictive_maintenance.replay femto Bearing1_1 --speed 10
 ```
 
-Messages are published on topics like `ipm/femto/Bearing1_1/vibration`. Stop the broker with `docker compose down`.
+Messages are published on topics like `ipm/femto/Bearing1_1/vibration`. In a second terminal, the ingestion service receives them, validates them and stores their features in `data/stream/`:
+
+```bash
+uv run python -m industrial_predictive_maintenance.ingest
+```
+
+Stop the broker with `docker compose down`.
