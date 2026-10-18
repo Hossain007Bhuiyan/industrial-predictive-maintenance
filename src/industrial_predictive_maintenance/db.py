@@ -1,3 +1,7 @@
+# Connection to the PostgreSQL database that compose.yaml starts.
+# Run it to check the connection and the server version:
+#     uv run --env-file .env python -m industrial_predictive_maintenance.db
+
 from __future__ import annotations
 
 import os
@@ -5,11 +9,11 @@ import os
 from sqlalchemy import URL, create_engine, text
 from sqlalchemy.engine import Engine
 
-# The same variables compose.yaml passes to the database container. On the Mac
-# they come from .env: uv run --env-file .env python -m industrial_predictive_maintenance.db
+# The same variables compose.yaml passes to the database container. On the Mac they come from .env.
 REQUIRED = ("POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB")
 
 
+# Database address from the environment. Stops with a clear message when .env wasn't loaded.
 def database_url() -> URL:
     missing = [name for name in REQUIRED if not os.environ.get(name)]
     if missing:
@@ -26,10 +30,12 @@ def database_url() -> URL:
     )
 
 
+# Engine for all database work in the project.
 def make_engine() -> Engine:
     return create_engine(database_url())
 
 
+# Connects once and prints which server answered, without the password.
 def main() -> None:
     url = database_url()
     with make_engine().connect() as conn:

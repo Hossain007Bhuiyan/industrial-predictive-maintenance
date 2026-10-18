@@ -1,9 +1,13 @@
+# Database tables: the asset registry (machines and sensors), the features of every accepted
+# recording and the rejected messages. The migrations in migrations/ create them.
+
 from __future__ import annotations
 from datetime import datetime
 from sqlalchemy import ARRAY, BigInteger, CheckConstraint, DateTime, ForeignKey, MetaData, String, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
+# Base class for all tables.
 class Base(DeclarativeBase):
     # Fixed constraint names, so later migrations can find and change them.
     metadata = MetaData(
@@ -17,6 +21,7 @@ class Base(DeclarativeBase):
     )
 
 
+# One row per machine: a FEMTO bearing run, an IMS test or an SCA case.
 class Machine(Base):
     __tablename__ = "machines"
     __table_args__ = (
@@ -36,6 +41,7 @@ class Machine(Base):
     fixed_speed: Mapped[bool | None]
 
 
+# One row per sensor position on a machine, with its bearing and fault frequencies.
 class Sensor(Base):
     __tablename__ = "sensors"
     # FEMTO messages have no placement, so an empty placement must also count only once per machine.
@@ -55,6 +61,7 @@ class Sensor(Base):
     fault_bpfi: Mapped[float | None]
 
 
+# One row per accepted recording. The vibration samples are not stored, only their features.
 class Measurement(Base):
     __tablename__ = "measurements"
     # MQTT can deliver a message twice. The copy has the same sequence and sent_at and is refused.
@@ -75,6 +82,7 @@ class Measurement(Base):
     received_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+# The 18 features of one channel of a measurement.
 class ChannelFeatures(Base):
     __tablename__ = "channel_features"
 
@@ -101,6 +109,7 @@ class ChannelFeatures(Base):
     fault_bpfi: Mapped[float | None]
 
 
+# One row per message the ingestion service refused, with the reasons.
 class RejectedMessage(Base):
     __tablename__ = "rejected_messages"
 
