@@ -8,13 +8,16 @@ authors = [
 ]
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "alembic>=1.20.0",
     "numpy>=2.5.3",
     "paho-mqtt>=2.1.0",
     "pandas>=3.0.6",
     "pandera>=0.34.1",
+    "psycopg[binary]>=3.3.6",
     "pyarrow>=25.0.1",
     "pydantic>=2.14.0",
     "scipy>=1.18.1",
+    "sqlalchemy>=2.1.5",
 ]
 
 [project.scripts]
